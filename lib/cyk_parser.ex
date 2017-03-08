@@ -35,9 +35,9 @@ defmodule CYKParser do
 
     # Set up CYK lookup table
     num_tokens = Enum.count(tokens)
-    table = create_table(num_tokens, nil)
-    table = parse_to_table(table, tokens)
-    table[0][num_tokens]
+    create_table(num_tokens, nil)
+    |> parse_to_table(tokens)
+    |> get_in([0, num_tokens])
   end
 
   # Split string into tokens
@@ -47,13 +47,11 @@ defmodule CYKParser do
   end
 
   # Tail-recursive function to process our tokens into a CYK table
-  def parse_to_table(table, []) do
-    #IO.puts("\n### parse_to_table          ####################################")
-    #IO.puts("<<< RETURN")
+  defp parse_to_table(table, []) do
+    # Terminate recursion
     table
   end
-  def parse_to_table(table, tokens) do
-    #IO.puts("\n### parse_to_table          ####################################")
+  defp parse_to_table(table, tokens) do
     # Orient ourselves on the table
     j = Enum.count(table) - Enum.count(tokens) + 1
 
@@ -64,28 +62,20 @@ defmodule CYKParser do
   end
 
   # Update table with backreferences based on recently added material.
-  def fill_row_in_column(table, i, j) when i >= 0 do
-    #IO.puts("\n### fill_row_in_column      ####################################")
+  defp fill_row_in_column(table, i, j) when i >= 0 do
     process_split_locations(table, i , j, i + 1)
     |> fill_row_in_column(i - 1, j)
   end
-  def fill_row_in_column(table, _i, _j) do
-    #IO.puts("\n### fill_row_in_column      ####################################")
-    #IO.puts("<<< RETURN")
+  defp fill_row_in_column(table, _i, _j) do
+    # Terminate recursion
     table
   end
 
   # Process split locations
-  def process_split_locations(table, i, j, k) when k < j do
-    #IO.puts("\n### process_split_locations ####################################")
-    #IO.inspect(table)
-    #IO.puts("i: #{i}, j: #{j}, k: #{k}")
-
+  defp process_split_locations(table, i, j, k) when k < j do
     b = table[i][k]
     c = table[k][j]
     match = rule(b, c)
-
-    #IO.puts("rule( #{inspect(b)}, #{inspect(c)} ) = #{inspect(match)}")
 
     case match do
       nil -> table
@@ -93,15 +83,13 @@ defmodule CYKParser do
     end
     |> process_split_locations(i, j, k + 1)
   end
-  def process_split_locations(table, _i, _j, _k) do
-    #IO.puts("\n### process_split_locations ####################################")
-    #IO.inspect(table)
-    #IO.puts("<<< RETURN")
+  defp process_split_locations(table, _i, _j, _k) do
+    # Terminate recursion
     table
   end
 
   # Create custom-indexed map-based table for building our CYK parse chart.
-  def create_table(num_tokens, initial) do
+  defp create_table(num_tokens, initial) do
     for r <- 0..(num_tokens - 1), into: %{} do
       colmap = for c <- 1..num_tokens, into: %{} do
         {c, initial}
