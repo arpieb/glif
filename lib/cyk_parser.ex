@@ -105,7 +105,7 @@ defmodule CYKParser do
   # Create custom-indexed map-based table for building our CYK parse chart.
   defp create_table(num_tokens, initial) do
     for r <- 0..(num_tokens - 1), into: %{} do
-      colmap = for c <- 1..num_tokens, into: %{} do
+      colmap = for c <- 1..(r + 1), into: %{} do
         {c, initial}
       end
       {r, colmap}
