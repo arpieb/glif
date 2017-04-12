@@ -1,53 +1,30 @@
-defmodule SheEatsFish do
-  ###########################################################################
-  # Grammar definition
-  ###########################################################################
-
-  # Note these are a bit backward from written CNF; we're function clause matching on the RHS
-  # and returning the rolled-up LHS.
-
-  # Terminals
-  def word("eats"), do: {:V, "eats"}
-  def word("she"), do: {:NP, "she"}
-  def word("with"), do: {:P, "with"}
-  def word("fish"), do: {:N, "fish"}
-  def word("fork"), do: {:N, "fork"}
-  def word("a"), do: {:Det, "a"}
-  def word("the"), do: {:Det, "the"}
-
-  # Terminal catchall
-  def word(_), do: nil
-
-  # Rules
-  def rule(b = {:NP, _}, c = {:VP, _}), do: {:S, {b, c}}
-  def rule(b = {:VP, _}, c = {:PP, _}), do: {:VP, {b, c}}
-  def rule(b = {:V, _}, c = {:NP, _}), do: {:VP, {b, c}}
-  def rule(b = {:P, _}, c = {:NP, _}), do: {:PP, {b, c}}
-  def rule(b = {:Det, _}, c = {:N, _}), do: {:NP, {b, c}}
-
-  # Rule catchall
-  def rule(_b, _c), do: nil
-
-  # Split string into tokens
-  def tokenize(sent) do
-    # Dirt. Simple. For testing only.
-    String.split(sent)
-  end
-
-end
-
 defmodule CYKParser do
   @moduledoc """
-  Documentation for CYKParser.
+  A basic Cocke–Younger–Kasami (CYK) chart parser.
 
-  Based on "chart parsing" approach presented in:
-  http://www.inf.ed.ac.uk/teaching/courses/inf2a/slides/2011_inf2a_L17_slides.pdf
+  The parser operates with a grammar module name that implements the
+  CYKParser.Grammar behaviour.
   """
 
-  ###########################################################################
-  # Parser code
-  ###########################################################################
-  # Implements CYK parser
+  @doc ~S"""
+  Parses the provided sentence into a parse tree using the provided grammar
+  module, or returns `nil` if it does not parse.
+
+  The sentence must be an Elixir binary, and the grammar module must
+  implement the CYKParser.Grammar behaviour.
+
+  Examples:
+      iex> CYKParser.parse("she eats the fish with a fork", CYKParser.Grammar.SheEatsFish)
+      {:S,
+       {{:NP, "she"},
+        {:VP,
+         {{:VP, {{:V, "eats"}, {:NP, {{:Det, "the"}, {:N, "fish"}}}}},
+          {:PP, {{:P, "with"}, {:NP, {{:Det, "a"}, {:N, "fork"}}}}}}}}}
+
+      iex> CYKParser.parse("this will not parse", CYKParser.Grammar.SheEatsFish)
+      nil
+  """
+  @spec parse(sent :: binary, module) :: tuple | nil
   def parse(sent, grammar) do
     # Tokenize sentence
     tokens = apply(grammar, :tokenize, [sent])
@@ -60,19 +37,19 @@ defmodule CYKParser do
   end
 
   # Tail-recursive function to process our tokens into a CYK table
-  defp parse_to_table(table, _grammar, []) do
+  defp parse_to_table(table, grammar, tokens) do
+    parse_to_table(table, grammar, tokens, 1)
+  end
+  defp parse_to_table(table, _grammar, [], _j) do
     # Terminate recursion
     table
   end
-  defp parse_to_table(table, grammar, tokens) do
-    # Orient ourselves on the table
-    j = Enum.count(table) - Enum.count(tokens) + 1
-
+  defp parse_to_table(table, grammar, tokens, j) do
     # Add applicable rules if any to table for this token, then update table based on previous rules; recurse
-    word = apply(grammar, :word, [hd(tokens)])
-    put_in(table[j - 1][j], word)
+    terminal = apply(grammar, :terminal, [hd(tokens)])
+    put_in(table[j - 1][j], terminal)
     |> fill_row_in_column(grammar, j - 2, j)
-    |> parse_to_table(grammar, tl(tokens))
+    |> parse_to_table(grammar, tl(tokens), j + 1)
   end
 
   # Update table with backreferences based on recently added material.
