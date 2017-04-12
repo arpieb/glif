@@ -25,14 +25,20 @@ defmodule CYKParser do
       nil
   """
   @spec parse(sent :: binary, module) :: tuple | nil
-  def parse(sent, grammar) do
+  def parse(sent, grammar, verbose \\ false) do
     # Tokenize sentence
     tokens = apply(grammar, :tokenize, [sent])
 
     # Set up CYK lookup table
     num_tokens = Enum.count(tokens)
-    create_table(num_tokens, nil)
+    chart = create_table(num_tokens)
     |> parse_to_table(grammar, tokens)
+
+    if (verbose) do
+      IO.inspect(chart)
+    end
+
+    chart
     |> get_in([0, num_tokens])
   end
 
@@ -64,14 +70,10 @@ defmodule CYKParser do
 
   # Process split locations
   defp process_split_locations(table, grammar, i, j, k) when k < j do
-    b = table[i][k]
-    c = table[k][j]
-    match = apply(grammar, :rule, [b, c])
+    b_all = table[i][k]
+    c_all = table[k][j]
 
-    case match do
-      nil -> table
-      _ -> put_in(table[i][j], match)
-    end
+    put_in(table[i][j], MapSet.union(table[i][j], MapSet.new(match_rules(grammar, b_all, c_all))))
     |> process_split_locations(grammar, i, j, k + 1)
   end
   defp process_split_locations(table, _grammar, _i, _j, _k) do
@@ -79,11 +81,22 @@ defmodule CYKParser do
     table
   end
 
+  defp match_rules(grammar, b_all, c_all) when b_all != nil and c_all != nil do
+    for b <- b_all, c <- c_all do
+      apply(grammar, :rule, [b, c])
+    end
+    |> List.flatten()
+    |> Enum.filter(&(&1))
+  end
+  defp match_rules(_grammar, _b_all, _c_call) do
+    []
+  end
+
   # Create custom-indexed map-based table for building our CYK parse chart.
-  defp create_table(num_tokens, initial) do
+  defp create_table(num_tokens) do
     for r <- 0..(num_tokens - 1), into: %{} do
-      colmap = for c <- 1..(r + 1), into: %{} do
-        {c, initial}
+      colmap = for c <- 1..(num_tokens), into: %{} do
+        {c, MapSet.new()}
       end
       {r, colmap}
     end

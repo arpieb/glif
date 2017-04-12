@@ -11,13 +11,13 @@ defmodule CYKParser.Grammar do
 
   @doc ~S"""
   Defines a CNF bigram rule (A -> BC) where the arguments are B, C and the
-  return is A, or nil if no match is found.
+  return is a list of matching A, or nil if no match is found.
   """
-  @callback rule(any, any) :: any
+  @callback rule(any, any) :: [tuple] | nil
 
   @doc ~S"""
   Defines a CNF terminal rule (A -> <token>) where the argument is the terminal
-  token and the return is A, or nil if no match is found.
+  token and the return is a list of matching A, or nil if no match is found.
   """
-  @callback terminal(String.t) :: any
+  @callback terminal(String.t) :: [tuple] | nil
 end
