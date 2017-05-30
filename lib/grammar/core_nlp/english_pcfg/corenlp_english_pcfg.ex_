@@ -37,6 +37,12 @@ defmodule CYKParser.Grammar.CoreNLPEnglishPCFG do
     def parse_pcfg(pcfg_path) do
         File.stream!(pcfg_path, [:read, :utf8])
         |> Enum.reduce(%CoreNLPGrammar{}, &CoreNLPGrammar.process_line/2)
+        #|> unary_to_binary()
+    end
+
+    # Transform all unary rules into CNF-compliant binary rules.
+    defp unary_to_binary(grammar) do
+
     end
 
     # Process a line from the file into the grammar being built.
