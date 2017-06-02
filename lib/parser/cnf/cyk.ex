@@ -27,13 +27,8 @@ defmodule Glif.Parser.CNF.CYK do
   end
 
   # Tail-recursive function to process our tokens into a CYK table
-  defp parse_to_table(table, grammar, tokens) do
-    parse_to_table(table, grammar, tokens, 1)
-  end
-  defp parse_to_table(table, _grammar, [], _j) do
-    # Terminate recursion
-    table
-  end
+  defp parse_to_table(table, grammar, tokens), do: parse_to_table(table, grammar, tokens, 1)
+  defp parse_to_table(table, _grammar, [], _j), do: table
   defp parse_to_table(table, grammar, tokens, j) do
     # Add applicable rules if any to table for this token, then update table based on previous rules; recurse
     terminal = apply(grammar, :terminal, [hd(tokens)])
@@ -47,10 +42,7 @@ defmodule Glif.Parser.CNF.CYK do
     process_split_locations(table, grammar, i , j, i + 1)
     |> fill_row_in_column(grammar, i - 1, j)
   end
-  defp fill_row_in_column(table, _grammar, _i, _j) do
-    # Terminate recursion
-    table
-  end
+  defp fill_row_in_column(table, _grammar, _i, _j), do: table
 
   # Process split locations
   defp process_split_locations(table, grammar, i, j, k) when k < j do
@@ -60,10 +52,7 @@ defmodule Glif.Parser.CNF.CYK do
     put_in(table[i][j], MapSet.union(table[i][j], MapSet.new(match_rules(grammar, b_all, c_all))))
     |> process_split_locations(grammar, i, j, k + 1)
   end
-  defp process_split_locations(table, _grammar, _i, _j, _k) do
-    # Terminate recursion
-    table
-  end
+  defp process_split_locations(table, _grammar, _i, _j, _k), do: table
 
   defp match_rules(grammar, b_all, c_all) when b_all != nil and c_all != nil do
     for b <- b_all, c <- c_all do
@@ -71,9 +60,14 @@ defmodule Glif.Parser.CNF.CYK do
     end
     |> List.flatten()
     |> Enum.filter(&(&1))
+    |> filter_rules_by_probability()
   end
-  defp match_rules(_grammar, _b_all, _c_call) do
-    []
+  defp match_rules(_grammar, _b_all, _c_call), do: []
+
+  # Filter rules for this cell based on probabilities, if present as third term
+  # in tuple: {lhs, rhs, prob}
+  defp filter_rules_by_probability(rules) do
+    rules
   end
 
   # Create custom-indexed map-based table for building our CYK parse chart.
