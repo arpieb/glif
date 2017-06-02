@@ -10,11 +10,11 @@ use Mix.Config
 
 # You can configure for your application as:
 #
-#     config :cyk_parser, key: :value
+#     config :glif, key: :value
 #
 # And access this configuration in your application as:
 #
-#     Application.get_env(:cyk_parser, :key)
+#     Application.get_env(:glif, :key)
 #
 # Or configure a 3rd-party app:
 #
