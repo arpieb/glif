@@ -1,4 +1,4 @@
-defmodule Glif.Parser.CNF.CYK do
+defmodule Glif.Parser.CNF.ProbabilisticCYK do
   @behaviour Glif.Parser.CNF
   @moduledoc """
   A basic Cocke–Younger–Kasami (CYK) chart parser that works with probabilistic CNF grammars.
@@ -24,7 +24,8 @@ defmodule Glif.Parser.CNF.CYK do
     create_table(num_tokens)
     |> parse_to_table(grammar, tokens)
     |> get_in([0, num_tokens])
-    |> Enum.filter(fn({a, _}) -> a == target end)
+    |> Enum.filter(fn({a, _, _}) -> a == target end)
+    |> filter_rules_by_probability()
   end
 
   # Tail-recursive function to process our tokens into a CYK table
@@ -61,8 +62,40 @@ defmodule Glif.Parser.CNF.CYK do
     end
     |> List.flatten()
     |> Enum.filter(&(&1))
+    |> filter_rules_by_probability()
   end
   defp match_rules(_grammar, _b_all, _c_call), do: []
+
+  # Filter rules for this cell based on probabilities, if present as third term
+  # in tuple: {lhs, rhs, prob}
+  defp filter_rules_by_probability(rules) do
+    rules
+    |> Enum.map(&({&1, calc_probability(&1)}))        # Precalc all matched rule probabilities
+    |> Enum.reduce(%{}, &acc_max_prob_rules/2)        # Reduce to set of highest probability rules for each LHS symbol
+    |> Enum.map(fn({_a, {rule, _prob}}) -> rule end)  # Remove interim values from enumerable, back to list of rules
+  end
+
+  # Calculate rule probability.
+  defp calc_probability({_a, {b, c}, prob}) do
+    prob * calc_probability(b) * calc_probability(c)
+  end
+  defp calc_probability(_rule), do: 1.0
+
+  # Reduce callback to take the max probability rule for each LHS symbol.
+  defp acc_max_prob_rules(trule = {{a, _bc, _lprob}, prob}, acc) do
+    case Map.get(acc, a) do
+      nil ->
+        Map.put(acc, a, trule)
+      {_, cur_prob} ->
+        if cur_prob < prob do
+          Map.put(acc, a, trule)
+        else
+          acc
+        end
+      _ ->
+        acc
+    end
+  end
 
   # Create custom-indexed map-based table for building our CYK parse chart.
   defp create_table(num_tokens) do
