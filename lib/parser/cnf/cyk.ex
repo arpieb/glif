@@ -14,8 +14,8 @@ defmodule Glif.Parser.CNF.CYK do
   The sentence must be an Elixir binary, and the grammar module must
   implement the Glif.Grammar.CNF behaviour.
   """
-  @spec parse(sent :: binary, module) :: tuple | nil
-  def parse(sent, grammar) do
+  @spec parse(sent :: binary, module, target :: binary) :: [tuple] | nil
+  def parse(sent, grammar, target \\ "S") do
     # Tokenize sentence
     tokens = apply(grammar, :tokenize, [sent])
 
@@ -24,6 +24,7 @@ defmodule Glif.Parser.CNF.CYK do
     create_table(num_tokens)
     |> parse_to_table(grammar, tokens)
     |> get_in([0, num_tokens])
+    |> Enum.filter(fn({a, _, _}) -> a == target end)
   end
 
   # Tail-recursive function to process our tokens into a CYK table
@@ -68,6 +69,31 @@ defmodule Glif.Parser.CNF.CYK do
   # in tuple: {lhs, rhs, prob}
   defp filter_rules_by_probability(rules) do
     rules
+    |> Enum.map(&({&1, calc_probability(&1)}))        # Precalc all matched rule probabilities
+    |> Enum.reduce(%{}, &acc_max_prob_rules/2)        # Reduce to set of highest probability rules for each LHS symbol
+    |> Enum.map(fn({_a, {rule, _prob}}) -> rule end)  # Remove interim values from enumerable, back to list of rules
+  end
+
+  # Calculate rule probability.
+  defp calc_probability({_a, {b, c}, prob}) do
+    prob * calc_probability(b) * calc_probability(c)
+  end
+  defp calc_probability(_rule), do: 1.0
+
+  # Reduce callback to take the max probability rule for each LHS symbol.
+  defp acc_max_prob_rules(trule = {{a, _bc, _lprob}, prob}, acc) do
+    case Map.get(acc, a) do
+      nil ->
+        Map.put(acc, a, trule)
+      {_, cur_prob} ->
+        if cur_prob < prob do
+          Map.put(acc, a, trule)
+        else
+          acc
+        end
+      _ ->
+        acc
+    end
   end
 
   # Create custom-indexed map-based table for building our CYK parse chart.
