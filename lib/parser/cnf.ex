@@ -7,5 +7,5 @@ defmodule Glif.Parser.CNF do
   @doc ~S"""
   Execute parse on a sentence using the specified Glif.Grammar.CNF module.
   """
-  @callback parse(sent :: binary, module) :: tuple | nil
+  @callback parse(sent :: binary, module, target :: binary) :: tuple | nil
 end
