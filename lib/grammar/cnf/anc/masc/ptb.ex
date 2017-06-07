@@ -123,7 +123,47 @@ defmodule Glif.Grammar.CNF.ANC.MASC.PTB do
   def tokenize(sent) do
     # Dirt. Simple. For testing only.
     # TODO implement a real tokenizer...
-    String.split(sent)
+    sent
+    |> String.trim()
+    |> String.split()
+    |> process_tokens()
+  end
+
+  # Process the list of tokens partially based on pseudocode from:
+  # https://spacy.io/docs/usage/customizing-tokenizer#how-tokenizer-works
+  defp process_tokens([]), do: []
+  defp process_tokens(tokens) do
+    ws_token = hd(tokens)
+    cond do
+      # Check to see if this terminal exists as-is.
+      terminal(ws_token) ->
+        [ws_token]
+
+      # If not, try mucking with capitalization to see if we get a hit.
+      ws_token |> String.downcase() |> terminal() ->
+        [ws_token |> String.downcase()]
+      ws_token |> String.upcase() |> terminal() ->
+        [ws_token |> String.upcase()]
+      ws_token |> String.capitalize() |> terminal() ->
+        [ws_token |> String.capitalize()]
+
+      # OK, nothing worked so maybe it's a "complex" token...
+      true ->
+        process_complex_token(ws_token)
+    end
+    |> Enum.concat(process_tokens(tl(tokens)))
+  end
+
+  # Process a token that doesn't currently match any terminal rules.
+  defp process_complex_token(token) do
+    # Simplistic approach; split on punctuation and try to process resulting list of tokens.
+    tokens = String.split(token, ~r{[\W]}, trim: true, include_captures: true)
+    cond do
+      length(tokens) > 1 ->
+        process_tokens(tokens)
+      true ->
+        tokens
+    end
   end
 
 end
