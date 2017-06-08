@@ -1,4 +1,4 @@
-defmodule Glif.Grammar.CNF.ANC.MASC.PTB do
+defmodule Glif.Grammar.CNF.MASC.PTB do
   @moduledoc """
   This grammar module provides a codified version of a CNF grammar extracted from
   the [American National Corpus' Manually Annotated Sub-Corpus](http://www.anc.org/data/masc/)
@@ -16,7 +16,7 @@ defmodule Glif.Grammar.CNF.ANC.MASC.PTB do
   # Some handy module attributes for locating assets.
   @external_resource cnf_path = Path.join([__DIR__, "anc_masc_ptb_v300.cnf"])
 
-  defmodule ANCMASCPTBGrammar do
+  defmodule GrammarLoader do
     @moduledoc ~S"""
     Helper module to be used only with the Glif.Grammar.CNF.ANC.MASC.PTB module to process the CNF export.
     """
@@ -27,7 +27,7 @@ defmodule Glif.Grammar.CNF.ANC.MASC.PTB do
     # Process Stanford CoreNLP PCFG export file
     def parse_cnf(cnf_path) do
         File.stream!(cnf_path, [:read, :utf8])
-        |> Enum.reduce(%ANCMASCPTBGrammar{}, &ANCMASCPTBGrammar.process_line/2)
+        |> Enum.reduce(%GrammarLoader{}, &GrammarLoader.process_line/2)
     end
 
     # Process a line from the file into the grammar being built.
@@ -69,7 +69,7 @@ defmodule Glif.Grammar.CNF.ANC.MASC.PTB do
 
   # Extract grammar maps from Stanford CoreNLP English PCFG export
   IO.puts("Parsing CNF export...")
-  %{lexicon: lexicon, rules: rules} = ANCMASCPTBGrammar.parse_cnf(@external_resource)
+  %{lexicon: lexicon, rules: rules} = GrammarLoader.parse_cnf(@external_resource)
   IO.puts("Extracted " <> Integer.to_string(Enum.count(lexicon)) <> " terminals")
   IO.puts("          " <> Integer.to_string(Enum.count(rules)) <> " rules")
 
