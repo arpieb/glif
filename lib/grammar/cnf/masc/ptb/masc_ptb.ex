@@ -24,7 +24,7 @@ defmodule Glif.Grammar.CNF.MASC.PTB do
     # Struct holds the major sections we will extract from the PCFG.
     defstruct lexicon: %{}, rules: %{}
 
-    # Process Stanford CoreNLP PCFG export file
+    # Process CNF export file
     def parse_cnf(cnf_path) do
         File.stream!(cnf_path, [:read, :utf8])
         |> Enum.reduce(%GrammarLoader{}, &GrammarLoader.process_line/2)

@@ -36,7 +36,9 @@ defmodule Glif.Grammar.CNF.SheEatsFish do
   # Split string into tokens
   def tokenize(sent) do
     # Dirt. Simple. For testing only.
-    String.split(sent)
+    sent
+    |> String.downcase()
+    |> String.split()
   end
 
 end
